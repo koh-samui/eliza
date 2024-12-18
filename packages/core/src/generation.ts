@@ -2,40 +2,40 @@ import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createGroq } from "@ai-sdk/groq";
 import { createOpenAI } from "@ai-sdk/openai";
-import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
+import { fal } from "@fal-ai/client";
 import {
     generateObject as aiGenerateObject,
     generateText as aiGenerateText,
     GenerateObjectResult,
 } from "ai";
 import { Buffer } from "buffer";
+import { encodingForModel, TiktokenModel } from "js-tiktoken";
+import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import { createOllama } from "ollama-ai-provider";
 import OpenAI from "openai";
-import { encodingForModel, TiktokenModel } from "js-tiktoken";
 import Together from "together-ai";
 import { ZodSchema } from "zod";
 import { elizaLogger } from "./index.ts";
 import { getModel, models } from "./models.ts";
 import {
+    parseActionResponseFromText,
     parseBooleanFromText,
     parseJsonArrayFromText,
     parseJSONObjectFromText,
     parseShouldRespondFromText,
-    parseActionResponseFromText,
 } from "./parsing.ts";
 import settings from "./settings.ts";
 import {
+    ActionResponse,
     Content,
     IAgentRuntime,
     IImageDescriptionService,
     ITextGenerationService,
     ModelClass,
     ModelProviderName,
-    ServiceType,
     SearchResponse,
-    ActionResponse,
+    ServiceType,
 } from "./types.ts";
-import { fal } from "@fal-ai/client";
 
 /**
  * Send a message to the model for a text generateText - receive a string back and parse how you'd like
@@ -65,6 +65,8 @@ export async function generateText({
         console.error("generateText context is empty");
         return "";
     }
+
+    console.log("generateText context debug:", context);
 
     elizaLogger.log("Generating text...");
 
@@ -1065,8 +1067,12 @@ export const generateImage = async (
                 num_inference_steps: modelSettings?.steps ?? 50,
                 guidance_scale: data.guidanceScale || 3.5,
                 num_images: data.count,
-                enable_safety_checker: runtime.getSetting("FAL_AI_ENABLE_SAFETY_CHECKER") === "true",
-                safety_tolerance: Number(runtime.getSetting("FAL_AI_SAFETY_TOLERANCE") || "2"),
+                enable_safety_checker:
+                    runtime.getSetting("FAL_AI_ENABLE_SAFETY_CHECKER") ===
+                    "true",
+                safety_tolerance: Number(
+                    runtime.getSetting("FAL_AI_SAFETY_TOLERANCE") || "2"
+                ),
                 output_format: "png" as const,
                 seed: data.seed ?? 6252023,
                 ...(runtime.getSetting("FAL_AI_LORA_PATH")

@@ -28,6 +28,7 @@ import {
 import { zgPlugin } from "@ai16z/plugin-0g";
 import { bootstrapPlugin } from "@ai16z/plugin-bootstrap";
 import createGoatPlugin from "@ai16z/plugin-goat";
+import { topwalletsPlugin } from "@ai16z/plugin-topwallets";
 // import { intifacePlugin } from "@ai16z/plugin-intiface";
 import { DirectClient } from "@ai16z/client-direct";
 import { aptosPlugin } from "@ai16z/plugin-aptos";
@@ -41,7 +42,6 @@ import {
 } from "@ai16z/plugin-coinbase";
 import { confluxPlugin } from "@ai16z/plugin-conflux";
 import { evmPlugin } from "@ai16z/plugin-evm";
-import { storyPlugin } from "@ai16z/plugin-story";
 import { flowPlugin } from "@ai16z/plugin-flow";
 import { imageGenerationPlugin } from "@ai16z/plugin-image-generation";
 import { multiversxPlugin } from "@ai16z/plugin-multiversx";
@@ -49,6 +49,7 @@ import { nearPlugin } from "@ai16z/plugin-near";
 import { nftGenerationPlugin } from "@ai16z/plugin-nft-generation";
 import { createNodePlugin } from "@ai16z/plugin-node";
 import { solanaPlugin } from "@ai16z/plugin-solana";
+import { storyPlugin } from "@ai16z/plugin-story";
 import { suiPlugin } from "@ai16z/plugin-sui";
 import { TEEMode, teePlugin } from "@ai16z/plugin-tee";
 import { tonPlugin } from "@ai16z/plugin-ton";
@@ -482,6 +483,7 @@ export async function createAgent(
         // character.plugins are handled when clients are added
         plugins: [
             bootstrapPlugin,
+            topwalletsPlugin,
             getSecret(character, "CONFLUX_CORE_PRIVATE_KEY")
                 ? confluxPlugin
                 : null,
@@ -648,9 +650,9 @@ const startAgents = async () => {
     }
 
     // upload some agent functionality into directClient
-    directClient.startAgent = async character => {
-      // wrap it so we don't have to inject directClient later
-      return startAgent(character, directClient)
+    directClient.startAgent = async (character) => {
+        // wrap it so we don't have to inject directClient later
+        return startAgent(character, directClient);
     };
     directClient.start(serverPort);
 
