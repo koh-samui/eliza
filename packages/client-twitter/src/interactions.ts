@@ -58,8 +58,6 @@ export const twitterShouldRespondTemplate = (targetUsersStr: string) =>
 
 Response options are RESPOND, IGNORE and STOP.
 
-PRIORITY RULE: ALWAYS RESPOND to these users regardless of topic or message content: ${targetUsersStr}. Topic relevance should be ignored for these users.
-
 For other users:
 - {{agentName}} should RESPOND to messages directed at them
 - {{agentName}} should RESPOND to conversations relevant to their background
@@ -68,10 +66,8 @@ For other users:
 - {{agentName}} should STOP if asked to stop
 - {{agentName}} should STOP if conversation is concluded
 - {{agentName}} is in a room with other users and wants to be conversational, but not annoying.
-
-{{recentPosts}}
-
-IMPORTANT: For users not in the priority list, {{agentName}} (@{{twitterUserName}}) should err on the side of IGNORE rather than RESPOND if in doubt.
+- {{agentName}} should RESPOND to users who ask to check/scan/analyze a solana spl token mint address.
+- {{agentName}} should IGNORE if users ask to check/scan/analyze a solana token name in this format: $TICKER.
 
 {{recentPosts}}
 
