@@ -1,13 +1,17 @@
+import {
+    Content,
+    elizaLogger,
+    getEmbeddingZeroVector,
+    Media,
+    Memory,
+    stringToUuid,
+    UUID,
+} from "@ai16z/eliza";
 import { Tweet } from "agent-twitter-client";
-import { getEmbeddingZeroVector } from "@ai16z/eliza";
-import { Content, Memory, UUID } from "@ai16z/eliza";
-import { stringToUuid } from "@ai16z/eliza";
-import { ClientBase } from "./base";
-import { elizaLogger } from "@ai16z/eliza";
-import { DEFAULT_MAX_TWEET_LENGTH } from "./environment";
-import { Media } from "@ai16z/eliza";
 import fs from "fs";
 import path from "path";
+import { ClientBase } from "./base";
+import { DEFAULT_MAX_TWEET_LENGTH } from "./environment";
 
 export const wait = (minTime: number = 1000, maxTime: number = 3000) => {
     const waitTime =
@@ -287,6 +291,12 @@ export async function sendTweet(
 }
 
 function splitTweetContent(content: string, maxLength: number): string[] {
+    // First check if this is a token analysis that needs special handling
+    const tokenAnalysisParts = splitTokenAnalysis(content);
+    if (tokenAnalysisParts.length > 1) {
+        return tokenAnalysisParts;
+    }
+
     const paragraphs = content.split("\n\n").map((p) => p.trim());
     const tweets: string[] = [];
     let currentTweet = "";
@@ -372,4 +382,59 @@ function splitParagraph(paragraph: string, maxLength: number): string[] {
     }
 
     return chunks;
+}
+
+export function splitTokenAnalysis(content: string): string[] {
+    // If content doesn't look like a token analysis, return as single tweet
+    if (!content.includes("Token Analysis") && !content.includes("📊")) {
+        return [content];
+    }
+
+    const parts: string[] = [];
+    const lines = content.split("\n");
+    let introSection = "";
+    let analysisSection = "";
+    let linksSection = "";
+    let currentSection = "intro";
+
+    for (const line of lines) {
+        // Switch to analysis section when we hit the token analysis header
+        if (
+            line.includes("📊 Token Analysis") ||
+            line.includes("Token Analysis:")
+        ) {
+            currentSection = "analysis";
+            continue;
+        }
+        // Switch to links section when we hit links (🔍 or http)
+        else if (line.includes("🔍") || line.includes("http")) {
+            currentSection = "links";
+        }
+
+        // Add line to appropriate section
+        switch (currentSection) {
+            case "intro":
+                introSection += line + "\n";
+                break;
+            case "analysis":
+                analysisSection += line + "\n";
+                break;
+            case "links":
+                linksSection += line + "\n";
+                break;
+        }
+    }
+
+    // Clean up and add parts if they have content
+    if (introSection.trim()) {
+        parts.push(introSection.trim());
+    }
+    if (analysisSection.trim()) {
+        parts.push(analysisSection.trim());
+    }
+    if (linksSection.trim()) {
+        parts.push(linksSection.trim());
+    }
+
+    return parts;
 }
