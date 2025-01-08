@@ -38,6 +38,7 @@ import {
     ModelClass,
     ModelProviderName,
     SearchResponse,
+    ServiceType,
     TelemetrySettings,
     TokenizerType,
 } from "./types.ts";

@@ -56,3 +56,4 @@ coverage
 
 agent/content
 packages/plugin-topwallets/
+output.log

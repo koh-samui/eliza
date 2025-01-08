@@ -23,6 +23,8 @@
     pnpm install --no-frozen-lockfile
     ```
 
+    note: run `pnpm clean` if you have old versions of the repo before.
+
 4. Build the project:
 
     ```bash
