@@ -392,18 +392,15 @@ export function splitTokenAnalysis(content: string): string[] {
 
     const parts: string[] = [];
     const lines = content.split("\n");
-    let introSection = "";
+    let aiSection = "";
     let analysisSection = "";
     let linksSection = "";
-    let currentSection = "intro";
+    let currentSection = "analysis";
 
     for (const line of lines) {
-        // Switch to analysis section when we hit the token analysis header
-        if (
-            line.includes("📊 Token Analysis") ||
-            line.includes("Token Analysis:")
-        ) {
-            currentSection = "analysis";
+        // Switch to ai section when we hit the token analysis header
+        if (line.includes("AI ANALYSIS")) {
+            currentSection = "ai";
             continue;
         }
         // Switch to links section when we hit links (🔍 or http)
@@ -413,8 +410,8 @@ export function splitTokenAnalysis(content: string): string[] {
 
         // Add line to appropriate section
         switch (currentSection) {
-            case "intro":
-                introSection += line + "\n";
+            case "ai":
+                aiSection += line + "\n";
                 break;
             case "analysis":
                 analysisSection += line + "\n";
@@ -426,11 +423,11 @@ export function splitTokenAnalysis(content: string): string[] {
     }
 
     // Clean up and add parts if they have content
-    if (introSection.trim()) {
-        parts.push(introSection.trim());
-    }
     if (analysisSection.trim()) {
         parts.push(analysisSection.trim());
+    }
+    if (aiSection.trim()) {
+        parts.push(aiSection.trim());
     }
     if (linksSection.trim()) {
         parts.push(linksSection.trim());
