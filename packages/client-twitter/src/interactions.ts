@@ -452,13 +452,31 @@ export class TwitterInteractionClient {
                     return memories;
                 };
 
-                const responseMessages = await callback(response);
+                elizaLogger.log("1) reponse", response);
+
+                let responseMessages: Memory[] = [];
+
+                if (response.action === "SCAN_TOKEN") {
+                    responseMessages.push({
+                        agentId: this.runtime.agentId,
+                        content: {
+                            text: "I am scanning the token.",
+                            action: "SCAN_TOKEN",
+                            inReplyTo: response.inReplyTo,
+                        },
+                        roomId: message.roomId,
+                        userId: this.runtime.agentId,
+                    });
+                } else {
+                    responseMessages = await callback(response);
+                }
 
                 state = (await this.runtime.updateRecentMessageState(
                     state
                 )) as State;
 
                 for (const responseMessage of responseMessages) {
+                    elizaLogger.log("2) responseMessage", responseMessage);
                     if (
                         responseMessage ===
                         responseMessages[responseMessages.length - 1]
@@ -471,6 +489,7 @@ export class TwitterInteractionClient {
                         responseMessage
                     );
                 }
+                elizaLogger.log("3) Process actions");
 
                 await this.runtime.processActions(
                     message,
