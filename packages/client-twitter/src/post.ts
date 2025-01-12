@@ -12,11 +12,12 @@ import {
     stringToUuid,
     UUID,
 } from "@elizaos/core";
-import { TopWalletsAPI } from "@elizaos/plugin-topwallets";
 import { Tweet } from "agent-twitter-client";
 import { ClientBase } from "./base.ts";
 import { DEFAULT_MAX_TWEET_LENGTH } from "./environment.ts";
 import { twitterMessageHandlerTemplate } from "./interactions.ts";
+import { scheduledTweets } from "./scheduled-tweets";
+import { TweetScheduler } from "./scheduled-tweets/scheduler";
 import { buildConversationThread } from "./utils.ts";
 
 const twitterPostTemplate = `
@@ -101,11 +102,6 @@ function truncateToCompleteSentence(
     return hardTruncated + "...";
 }
 
-type TopKolsTweet = {
-    content: string;
-    mediaData: { data: Buffer; mediaType: string }[];
-};
-
 export class TwitterPostClient {
     client: ClientBase;
     runtime: IAgentRuntime;
@@ -114,6 +110,7 @@ export class TwitterPostClient {
     private lastProcessTime: number = 0;
     private stopProcessingActions: boolean = false;
     private isDryRun: boolean;
+    private scheduler: TweetScheduler;
 
     constructor(client: ClientBase, runtime: IAgentRuntime) {
         this.client = client;
@@ -153,6 +150,12 @@ export class TwitterPostClient {
                 "Twitter client initialized in dry run mode - no actual tweets should be posted"
             );
         }
+
+        this.scheduler = new TweetScheduler(
+            scheduledTweets,
+            this.runtime,
+            this.twitterUsername
+        );
     }
 
     async start() {
@@ -419,122 +422,131 @@ export class TwitterPostClient {
      * Generates and posts a new tweet. If isDryRun is true, only logs what would have been posted.
      */
     private async generateNewTweet() {
-        elizaLogger.log("Generating new tweet");
-
         try {
-            // Check if we should send top KOLs tweet
-            const shouldSendTopKols = await this.shouldSendTopKolsTweet();
-
-            let cleanedContent: string;
-            let mediaData: { data: Buffer; mediaType: string }[] | null = null;
-            const roomId = stringToUuid(
-                "twitter_generate_room-" + this.client.profile.username
-            );
-
-            if (shouldSendTopKols) {
-                const { content, mediaData: topKolsMedia } =
-                    await this.generateTopKolsTweet();
-                cleanedContent = content;
-                mediaData = topKolsMedia;
-
-                await this.runtime.cacheManager.set(
-                    `twitter/${this.twitterUsername}/lastTopKolsTweet`,
-                    {
-                        timestamp: Date.now(),
-                    }
-                );
-            } else {
-                await this.runtime.ensureUserExists(
-                    this.runtime.agentId,
-                    this.client.profile.username,
-                    this.runtime.character.name,
-                    "twitter"
-                );
-
-                const topics = this.runtime.character.topics.join(", ");
-
-                const state = await this.runtime.composeState(
-                    {
-                        userId: this.runtime.agentId,
-                        roomId: roomId,
-                        agentId: this.runtime.agentId,
-                        content: {
-                            text: topics || "",
-                            action: "TWEET",
-                        },
-                    },
-                    {
-                        twitterUserName: this.client.profile.username,
-                    }
-                );
-
-                const context = composeContext({
-                    state,
-                    template:
-                        this.runtime.character.templates?.twitterPostTemplate ||
-                        twitterPostTemplate,
-                });
-
-                elizaLogger.debug("generate post prompt:\n" + context);
-
-                const newTweetContent = await generateText({
-                    runtime: this.runtime,
-                    context,
-                    modelClass: ModelClass.SMALL,
-                });
-
-                // First attempt to clean content
-                cleanedContent = "";
-
-                // Try parsing as JSON first
-                try {
-                    const parsedResponse = JSON.parse(newTweetContent);
-                    if (parsedResponse.text) {
-                        cleanedContent = parsedResponse.text;
-                    } else if (typeof parsedResponse === "string") {
-                        cleanedContent = parsedResponse;
-                    }
-                } catch (error) {
-                    error.linted = true; // make linter happy since catch needs a variable
-                    // If not JSON, clean the raw content
-                    cleanedContent = newTweetContent
-                        .replace(/^\s*{?\s*"text":\s*"|"\s*}?\s*$/g, "") // Remove JSON-like wrapper
-                        .replace(/^['"](.*)['"]$/g, "$1") // Remove quotes
-                        .replace(/\\"/g, '"') // Unescape quotes
-                        .replace(/\\n/g, "\n\n") // Unescape newlines, ensures double spaces
-                        .trim();
-                }
-
-                if (!cleanedContent) {
-                    elizaLogger.error(
-                        "Failed to extract valid content from response:",
-                        {
-                            rawResponse: newTweetContent,
-                            attempted: "JSON parsing",
-                        }
+            // Check for scheduled tweets first
+            const scheduledTweet = await this.scheduler.getNextScheduledTweet();
+            if (scheduledTweet) {
+                if (this.isDryRun) {
+                    elizaLogger.info(
+                        `Dry run: would have posted scheduled tweet:\n${scheduledTweet.content}${
+                            scheduledTweet.mediaData
+                                ? "\nWith media attachment"
+                                : ""
+                        }`
                     );
                     return;
                 }
 
-                // Truncate the content to the maximum tweet length specified in the environment settings, ensuring the truncation respects sentence boundaries.
-                const maxTweetLength =
-                    this.client.twitterConfig.MAX_TWEET_LENGTH;
-                if (maxTweetLength) {
-                    cleanedContent = truncateToCompleteSentence(
-                        cleanedContent,
-                        maxTweetLength
-                    );
-                }
-
-                const removeQuotes = (str: string) =>
-                    str.replace(/^['"](.*)['"]$/, "$1");
-
-                const fixNewLines = (str: string) =>
-                    str.replaceAll(/\\n/g, "\n\n"); //ensures double spaces
-
-                // Final cleaning
-                cleanedContent = removeQuotes(fixNewLines(cleanedContent));
+                await this.postTweet(
+                    this.runtime,
+                    this.client,
+                    scheduledTweet.content,
+                    stringToUuid(
+                        "scheduled-tweet-room-" + this.twitterUsername
+                    ),
+                    scheduledTweet.content,
+                    this.twitterUsername,
+                    scheduledTweet.mediaData
+                );
+                return;
             }
+
+            // Fall back to regular tweet generation
+            elizaLogger.log("Generating new tweet");
+
+            let cleanedContent: string;
+            const roomId = stringToUuid(
+                "twitter_generate_room-" + this.client.profile.username
+            );
+
+            await this.runtime.ensureUserExists(
+                this.runtime.agentId,
+                this.client.profile.username,
+                this.runtime.character.name,
+                "twitter"
+            );
+
+            const topics = this.runtime.character.topics.join(", ");
+
+            const state = await this.runtime.composeState(
+                {
+                    userId: this.runtime.agentId,
+                    roomId: roomId,
+                    agentId: this.runtime.agentId,
+                    content: {
+                        text: topics || "",
+                        action: "TWEET",
+                    },
+                },
+                {
+                    twitterUserName: this.client.profile.username,
+                }
+            );
+
+            const context = composeContext({
+                state,
+                template:
+                    this.runtime.character.templates?.twitterPostTemplate ||
+                    twitterPostTemplate,
+            });
+
+            elizaLogger.debug("generate post prompt:\n" + context);
+
+            const newTweetContent = await generateText({
+                runtime: this.runtime,
+                context,
+                modelClass: ModelClass.SMALL,
+            });
+
+            // First attempt to clean content
+            cleanedContent = "";
+
+            // Try parsing as JSON first
+            try {
+                const parsedResponse = JSON.parse(newTweetContent);
+                if (parsedResponse.text) {
+                    cleanedContent = parsedResponse.text;
+                } else if (typeof parsedResponse === "string") {
+                    cleanedContent = parsedResponse;
+                }
+            } catch (error) {
+                error.linted = true; // make linter happy since catch needs a variable
+                // If not JSON, clean the raw content
+                cleanedContent = newTweetContent
+                    .replace(/^\s*{?\s*"text":\s*"|"\s*}?\s*$/g, "") // Remove JSON-like wrapper
+                    .replace(/^['"](.*)['"]$/g, "$1") // Remove quotes
+                    .replace(/\\"/g, '"') // Unescape quotes
+                    .replace(/\\n/g, "\n\n") // Unescape newlines, ensures double spaces
+                    .trim();
+            }
+
+            if (!cleanedContent) {
+                elizaLogger.error(
+                    "Failed to extract valid content from response:",
+                    {
+                        rawResponse: newTweetContent,
+                        attempted: "JSON parsing",
+                    }
+                );
+                return;
+            }
+
+            // Truncate the content to the maximum tweet length specified in the environment settings, ensuring the truncation respects sentence boundaries.
+            const maxTweetLength = this.client.twitterConfig.MAX_TWEET_LENGTH;
+            if (maxTweetLength) {
+                cleanedContent = truncateToCompleteSentence(
+                    cleanedContent,
+                    maxTweetLength
+                );
+            }
+
+            const removeQuotes = (str: string) =>
+                str.replace(/^['"](.*)['"]$/, "$1");
+
+            const fixNewLines = (str: string) => str.replaceAll(/\\n/g, "\n\n"); //ensures double spaces
+
+            // Final cleaning
+            cleanedContent = removeQuotes(fixNewLines(cleanedContent));
 
             if (this.isDryRun) {
                 elizaLogger.info(
@@ -545,20 +557,19 @@ export class TwitterPostClient {
 
             try {
                 elizaLogger.log(`Posting new tweet:\n ${cleanedContent}`);
-                this.postTweet(
+                await this.postTweet(
                     this.runtime,
                     this.client,
                     cleanedContent,
                     roomId,
                     cleanedContent,
-                    this.twitterUsername,
-                    mediaData
+                    this.twitterUsername
                 );
             } catch (error) {
                 elizaLogger.error("Error sending tweet:", error);
             }
         } catch (error) {
-            elizaLogger.error("Error generating new tweet:", error);
+            elizaLogger.error("Error generating tweet:", error);
         }
     }
 
@@ -1104,98 +1115,5 @@ export class TwitterPostClient {
 
     async stop() {
         this.stopProcessingActions = true;
-    }
-
-    async generateTopKolsTweet(): Promise<TopKolsTweet> {
-        try {
-            const topWalletsAPI = TopWalletsAPI.getInstance();
-            const [response, imageBuffer] = await Promise.all([
-                topWalletsAPI.getTopKols(100),
-                topWalletsAPI.getTopKolsPicture(),
-            ]);
-
-            // Sort by 1d score and get top 3
-            const top3Kols = response.data
-                .sort((a, b) => b["1d"].score - a["1d"].score)
-                .slice(0, 3);
-
-            // Format numbers for better readability
-            const formatPnl = (pnl: number) => {
-                if (Math.abs(pnl) >= 1000000) {
-                    return `$${(pnl / 1000000).toFixed(1)}M`;
-                } else if (Math.abs(pnl) >= 1000) {
-                    return `$${(pnl / 1000).toFixed(1)}K`;
-                }
-                return `$${pnl.toFixed(0)}`;
-            };
-
-            // Generate tweet text
-            const tweetLines = [
-                "Top 3 KOLs by trading stats in the last 24H",
-                "", // Empty line for spacing
-            ];
-
-            const emojis = ["🥇", "🥈", "🥉"];
-
-            top3Kols.forEach((kol, index) => {
-                const data = kol["1d"];
-                const handle = data.twitter_url
-                    ? `@${data.twitter_url.split("/").pop()}`
-                    : data.formattedAddress.slice(0, 8);
-                const winRate = `${data.winrate}%`;
-                const pnl = formatPnl(data.combinedPnlRaw);
-
-                tweetLines.push(
-                    `${emojis[index]} ${handle} | ${winRate} WR - ${pnl} PnL`
-                );
-            });
-
-            // Add empty line and link
-            tweetLines.push("");
-            tweetLines.push(
-                "See full standings at https://www.topwallets.ai/top-kols"
-            );
-
-            return {
-                content: tweetLines.join("\n"),
-                mediaData: [
-                    {
-                        data: imageBuffer,
-                        mediaType: "image/png",
-                    },
-                ],
-            };
-        } catch (error) {
-            elizaLogger.error("Error generating top KOLs tweet:", error);
-            throw error;
-        }
-    }
-
-    async shouldSendTopKolsTweet(): Promise<boolean> {
-        const now = new Date();
-        const currentHour = now.getHours();
-
-        // Check if it's after 6 PM
-        if (currentHour < 10) {
-            elizaLogger.log("Top KOLs tweet disabled before 2 AM");
-            return false;
-        }
-
-        // Check if we already sent the tweet today
-        const lastTopKolsTweet = await this.runtime.cacheManager.get<{
-            timestamp: number;
-        }>(`twitter/${this.twitterUsername}/lastTopKolsTweet`);
-
-        if (!lastTopKolsTweet) {
-            elizaLogger.log("No last top KOLs tweet found, sending now");
-            return true;
-        }
-
-        // Check if the last tweet was sent today
-        const lastTweetDate = new Date(lastTopKolsTweet.timestamp);
-        elizaLogger.log(
-            `Last top KOLs tweet was sent on ${lastTweetDate.toDateString()}, current date is ${now.toDateString()}`
-        );
-        return lastTweetDate.toDateString() !== now.toDateString();
     }
 }

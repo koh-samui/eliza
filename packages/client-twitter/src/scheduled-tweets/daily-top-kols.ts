@@ -1,0 +1,74 @@
+import { elizaLogger } from "@elizaos/core";
+import { TopWalletsAPI } from "@elizaos/plugin-topwallets";
+import { ScheduledTweet } from "./types";
+
+const formatPnl = (pnl: number) => {
+    if (Math.abs(pnl) >= 1000000) {
+        return `$${(pnl / 1000000).toFixed(1)}M`;
+    } else if (Math.abs(pnl) >= 1000) {
+        return `$${(pnl / 1000).toFixed(1)}K`;
+    }
+    return `$${pnl.toFixed(0)}`;
+};
+
+export const dailyTopKolsTweet: ScheduledTweet = {
+    id: "daily-top-kols",
+    frequency: "daily",
+    timeCondition: {
+        hour: 10, // after 10 AM
+    },
+    generateContent: async () => {
+        try {
+            const topWalletsAPI = TopWalletsAPI.getInstance();
+            const [response, imageBuffer] = await Promise.all([
+                topWalletsAPI.getTopKols(100),
+                topWalletsAPI.getTopKolsPicture(),
+            ]);
+
+            // Sort by 1d score and get top 3
+            const top3Kols = response.data
+                .sort((a, b) => b["1d"].score - a["1d"].score)
+                .slice(0, 3);
+
+            // Generate tweet text
+            const tweetLines = [
+                "Top 3 KOLs by trading stats in the last 24H",
+                "", // Empty line for spacing
+            ];
+
+            const emojis = ["🥇", "🥈", "🥉"];
+
+            top3Kols.forEach((kol, index) => {
+                const data = kol["1d"];
+                const handle = data.twitter_url
+                    ? `@${data.twitter_url.split("/").pop()}`
+                    : data.formattedAddress.slice(0, 8);
+                const winRate = `${data.winrate}%`;
+                const pnl = formatPnl(data.combinedPnlRaw);
+
+                tweetLines.push(
+                    `${emojis[index]} ${handle} | ${winRate} WR - ${pnl} PnL`
+                );
+            });
+
+            // Add empty line and link
+            tweetLines.push("");
+            tweetLines.push(
+                "See full standings at https://www.topwallets.ai/top-kols"
+            );
+
+            return {
+                content: tweetLines.join("\n"),
+                mediaData: [
+                    {
+                        data: imageBuffer,
+                        mediaType: "image/png",
+                    },
+                ],
+            };
+        } catch (error) {
+            elizaLogger.error("Error generating daily top KOLs tweet:", error);
+            throw error;
+        }
+    },
+};
