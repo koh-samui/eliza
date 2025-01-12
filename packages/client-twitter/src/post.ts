@@ -101,6 +101,11 @@ function truncateToCompleteSentence(
     return hardTruncated + "...";
 }
 
+type TopKolsTweet = {
+    content: string;
+    mediaData: { data: Buffer; mediaType: string }[];
+};
+
 export class TwitterPostClient {
     client: ClientBase;
     runtime: IAgentRuntime;
@@ -339,12 +344,17 @@ export class TwitterPostClient {
     async sendStandardTweet(
         client: ClientBase,
         content: string,
-        tweetId?: string
+        tweetId?: string,
+        mediaData?: { data: Buffer; mediaType: string }[] | null
     ) {
         try {
             const standardTweetResult = await client.requestQueue.add(
                 async () =>
-                    await client.twitterClient.sendTweet(content, tweetId)
+                    await client.twitterClient.sendTweet(
+                        content,
+                        tweetId,
+                        mediaData
+                    )
             );
             const body = await standardTweetResult.json();
             if (!body?.data?.create_tweet?.tweet_results?.result) {
@@ -364,7 +374,8 @@ export class TwitterPostClient {
         cleanedContent: string,
         roomId: UUID,
         newTweetContent: string,
-        twitterUsername: string
+        twitterUsername: string,
+        mediaData?: { data: Buffer; mediaType: string }[] | null
     ) {
         try {
             elizaLogger.log(`Posting new tweet:\n`);
@@ -378,7 +389,12 @@ export class TwitterPostClient {
                     cleanedContent
                 );
             } else {
-                result = await this.sendStandardTweet(client, cleanedContent);
+                result = await this.sendStandardTweet(
+                    client,
+                    cleanedContent,
+                    undefined,
+                    mediaData
+                );
             }
 
             const tweet = this.createTweetObject(
@@ -410,12 +426,17 @@ export class TwitterPostClient {
             const shouldSendTopKols = await this.shouldSendTopKolsTweet();
 
             let cleanedContent: string;
+            let mediaData: { data: Buffer; mediaType: string }[] | null = null;
             const roomId = stringToUuid(
                 "twitter_generate_room-" + this.client.profile.username
             );
+
             if (shouldSendTopKols) {
-                cleanedContent = await this.generateTopKolsTweet();
-                // Cache the timestamp of the top KOLs tweet
+                const { content, mediaData: topKolsMedia } =
+                    await this.generateTopKolsTweet();
+                cleanedContent = content;
+                mediaData = topKolsMedia;
+
                 await this.runtime.cacheManager.set(
                     `twitter/${this.twitterUsername}/lastTopKolsTweet`,
                     {
@@ -530,7 +551,8 @@ export class TwitterPostClient {
                     cleanedContent,
                     roomId,
                     cleanedContent,
-                    this.twitterUsername
+                    this.twitterUsername,
+                    mediaData
                 );
             } catch (error) {
                 elizaLogger.error("Error sending tweet:", error);
@@ -1084,10 +1106,13 @@ export class TwitterPostClient {
         this.stopProcessingActions = true;
     }
 
-    async generateTopKolsTweet(): Promise<string> {
+    async generateTopKolsTweet(): Promise<TopKolsTweet> {
         try {
             const topWalletsAPI = TopWalletsAPI.getInstance();
-            const response = await topWalletsAPI.getTopKols(100);
+            const [response, imageBuffer] = await Promise.all([
+                topWalletsAPI.getTopKols(100),
+                topWalletsAPI.getTopKolsPicture(),
+            ]);
 
             // Sort by 1d score and get top 3
             const top3Kols = response.data
@@ -1131,7 +1156,15 @@ export class TwitterPostClient {
                 "See full standings at https://www.topwallets.ai/top-kols"
             );
 
-            return tweetLines.join("\n");
+            return {
+                content: tweetLines.join("\n"),
+                mediaData: [
+                    {
+                        data: imageBuffer,
+                        mediaType: "image/png",
+                    },
+                ],
+            };
         } catch (error) {
             elizaLogger.error("Error generating top KOLs tweet:", error);
             throw error;
@@ -1143,7 +1176,7 @@ export class TwitterPostClient {
         const currentHour = now.getHours();
 
         // Check if it's after 6 PM
-        if (currentHour < 18) {
+        if (currentHour < 10) {
             elizaLogger.log("Top KOLs tweet disabled before 2 AM");
             return false;
         }
