@@ -12,6 +12,7 @@ import {
     stringToUuid,
     UUID,
 } from "@elizaos/core";
+import { TopWalletsAPI } from "@elizaos/plugin-topwallets";
 import { Tweet } from "agent-twitter-client";
 import { ClientBase } from "./base.ts";
 import { DEFAULT_MAX_TWEET_LENGTH } from "./environment.ts";
@@ -211,12 +212,7 @@ export class TwitterPostClient {
         }
 
         // Only start tweet generation loop if not in dry run mode
-        if (!this.isDryRun) {
-            generateNewTweetLoop();
-            elizaLogger.log("Tweet generation loop started");
-        } else {
-            elizaLogger.log("Tweet generation loop disabled (dry run mode)");
-        }
+        generateNewTweetLoop();
 
         if (
             this.client.twitterConfig.ENABLE_ACTION_PROCESSING &&
@@ -410,97 +406,114 @@ export class TwitterPostClient {
         elizaLogger.log("Generating new tweet");
 
         try {
+            // Check if we should send top KOLs tweet
+            const shouldSendTopKols = await this.shouldSendTopKolsTweet();
+
+            let cleanedContent: string;
             const roomId = stringToUuid(
                 "twitter_generate_room-" + this.client.profile.username
             );
-            await this.runtime.ensureUserExists(
-                this.runtime.agentId,
-                this.client.profile.username,
-                this.runtime.character.name,
-                "twitter"
-            );
-
-            const topics = this.runtime.character.topics.join(", ");
-
-            const state = await this.runtime.composeState(
-                {
-                    userId: this.runtime.agentId,
-                    roomId: roomId,
-                    agentId: this.runtime.agentId,
-                    content: {
-                        text: topics || "",
-                        action: "TWEET",
-                    },
-                },
-                {
-                    twitterUserName: this.client.profile.username,
-                }
-            );
-
-            const context = composeContext({
-                state,
-                template:
-                    this.runtime.character.templates?.twitterPostTemplate ||
-                    twitterPostTemplate,
-            });
-
-            elizaLogger.debug("generate post prompt:\n" + context);
-
-            const newTweetContent = await generateText({
-                runtime: this.runtime,
-                context,
-                modelClass: ModelClass.SMALL,
-            });
-
-            // First attempt to clean content
-            let cleanedContent = "";
-
-            // Try parsing as JSON first
-            try {
-                const parsedResponse = JSON.parse(newTweetContent);
-                if (parsedResponse.text) {
-                    cleanedContent = parsedResponse.text;
-                } else if (typeof parsedResponse === "string") {
-                    cleanedContent = parsedResponse;
-                }
-            } catch (error) {
-                error.linted = true; // make linter happy since catch needs a variable
-                // If not JSON, clean the raw content
-                cleanedContent = newTweetContent
-                    .replace(/^\s*{?\s*"text":\s*"|"\s*}?\s*$/g, "") // Remove JSON-like wrapper
-                    .replace(/^['"](.*)['"]$/g, "$1") // Remove quotes
-                    .replace(/\\"/g, '"') // Unescape quotes
-                    .replace(/\\n/g, "\n\n") // Unescape newlines, ensures double spaces
-                    .trim();
-            }
-
-            if (!cleanedContent) {
-                elizaLogger.error(
-                    "Failed to extract valid content from response:",
+            if (shouldSendTopKols) {
+                cleanedContent = await this.generateTopKolsTweet();
+                // Cache the timestamp of the top KOLs tweet
+                await this.runtime.cacheManager.set(
+                    `twitter/${this.twitterUsername}/lastTopKolsTweet`,
                     {
-                        rawResponse: newTweetContent,
-                        attempted: "JSON parsing",
+                        timestamp: Date.now(),
                     }
                 );
-                return;
-            }
-
-            // Truncate the content to the maximum tweet length specified in the environment settings, ensuring the truncation respects sentence boundaries.
-            const maxTweetLength = this.client.twitterConfig.MAX_TWEET_LENGTH;
-            if (maxTweetLength) {
-                cleanedContent = truncateToCompleteSentence(
-                    cleanedContent,
-                    maxTweetLength
+            } else {
+                await this.runtime.ensureUserExists(
+                    this.runtime.agentId,
+                    this.client.profile.username,
+                    this.runtime.character.name,
+                    "twitter"
                 );
+
+                const topics = this.runtime.character.topics.join(", ");
+
+                const state = await this.runtime.composeState(
+                    {
+                        userId: this.runtime.agentId,
+                        roomId: roomId,
+                        agentId: this.runtime.agentId,
+                        content: {
+                            text: topics || "",
+                            action: "TWEET",
+                        },
+                    },
+                    {
+                        twitterUserName: this.client.profile.username,
+                    }
+                );
+
+                const context = composeContext({
+                    state,
+                    template:
+                        this.runtime.character.templates?.twitterPostTemplate ||
+                        twitterPostTemplate,
+                });
+
+                elizaLogger.debug("generate post prompt:\n" + context);
+
+                const newTweetContent = await generateText({
+                    runtime: this.runtime,
+                    context,
+                    modelClass: ModelClass.SMALL,
+                });
+
+                // First attempt to clean content
+                cleanedContent = "";
+
+                // Try parsing as JSON first
+                try {
+                    const parsedResponse = JSON.parse(newTweetContent);
+                    if (parsedResponse.text) {
+                        cleanedContent = parsedResponse.text;
+                    } else if (typeof parsedResponse === "string") {
+                        cleanedContent = parsedResponse;
+                    }
+                } catch (error) {
+                    error.linted = true; // make linter happy since catch needs a variable
+                    // If not JSON, clean the raw content
+                    cleanedContent = newTweetContent
+                        .replace(/^\s*{?\s*"text":\s*"|"\s*}?\s*$/g, "") // Remove JSON-like wrapper
+                        .replace(/^['"](.*)['"]$/g, "$1") // Remove quotes
+                        .replace(/\\"/g, '"') // Unescape quotes
+                        .replace(/\\n/g, "\n\n") // Unescape newlines, ensures double spaces
+                        .trim();
+                }
+
+                if (!cleanedContent) {
+                    elizaLogger.error(
+                        "Failed to extract valid content from response:",
+                        {
+                            rawResponse: newTweetContent,
+                            attempted: "JSON parsing",
+                        }
+                    );
+                    return;
+                }
+
+                // Truncate the content to the maximum tweet length specified in the environment settings, ensuring the truncation respects sentence boundaries.
+                const maxTweetLength =
+                    this.client.twitterConfig.MAX_TWEET_LENGTH;
+                if (maxTweetLength) {
+                    cleanedContent = truncateToCompleteSentence(
+                        cleanedContent,
+                        maxTweetLength
+                    );
+                }
+
+                const removeQuotes = (str: string) =>
+                    str.replace(/^['"](.*)['"]$/, "$1");
+
+                const fixNewLines = (str: string) =>
+                    str.replaceAll(/\\n/g, "\n\n"); //ensures double spaces
+
+                // Final cleaning
+                cleanedContent = removeQuotes(fixNewLines(cleanedContent));
             }
-
-            const removeQuotes = (str: string) =>
-                str.replace(/^['"](.*)['"]$/, "$1");
-
-            const fixNewLines = (str: string) => str.replaceAll(/\\n/g, "\n\n"); //ensures double spaces
-
-            // Final cleaning
-            cleanedContent = removeQuotes(fixNewLines(cleanedContent));
 
             if (this.isDryRun) {
                 elizaLogger.info(
@@ -516,7 +529,7 @@ export class TwitterPostClient {
                     this.client,
                     cleanedContent,
                     roomId,
-                    newTweetContent,
+                    cleanedContent,
                     this.twitterUsername
                 );
             } catch (error) {
@@ -1069,5 +1082,87 @@ export class TwitterPostClient {
 
     async stop() {
         this.stopProcessingActions = true;
+    }
+
+    async generateTopKolsTweet(): Promise<string> {
+        try {
+            const topWalletsAPI = TopWalletsAPI.getInstance();
+            const response = await topWalletsAPI.getTopKols(100);
+
+            // Sort by 1d score and get top 3
+            const top3Kols = response.data
+                .sort((a, b) => b["1d"].score - a["1d"].score)
+                .slice(0, 3);
+
+            // Format numbers for better readability
+            const formatPnl = (pnl: number) => {
+                if (Math.abs(pnl) >= 1000000) {
+                    return `$${(pnl / 1000000).toFixed(1)}M`;
+                } else if (Math.abs(pnl) >= 1000) {
+                    return `$${(pnl / 1000).toFixed(1)}K`;
+                }
+                return `$${pnl.toFixed(0)}`;
+            };
+
+            // Generate tweet text
+            const tweetLines = [
+                "Top 3 KOLs by trading stats in the last 24H",
+                "", // Empty line for spacing
+            ];
+
+            const emojis = ["🥇", "🥈", "🥉"];
+
+            top3Kols.forEach((kol, index) => {
+                const data = kol["1d"];
+                const handle = data.twitter_url
+                    ? `@${data.twitter_url.split("/").pop()}`
+                    : data.formattedAddress.slice(0, 8);
+                const winRate = `${data.winrate}%`;
+                const pnl = formatPnl(data.combinedPnlRaw);
+
+                tweetLines.push(
+                    `${emojis[index]} ${handle} | ${winRate} WR - ${pnl} PnL`
+                );
+            });
+
+            // Add empty line and link
+            tweetLines.push("");
+            tweetLines.push(
+                "See full standings at https://www.topwallets.ai/top-kols"
+            );
+
+            return tweetLines.join("\n");
+        } catch (error) {
+            elizaLogger.error("Error generating top KOLs tweet:", error);
+            throw error;
+        }
+    }
+
+    async shouldSendTopKolsTweet(): Promise<boolean> {
+        const now = new Date();
+        const currentHour = now.getHours();
+
+        // Check if it's after 6 PM
+        if (currentHour < 18) {
+            elizaLogger.log("Top KOLs tweet disabled before 2 AM");
+            return false;
+        }
+
+        // Check if we already sent the tweet today
+        const lastTopKolsTweet = await this.runtime.cacheManager.get<{
+            timestamp: number;
+        }>(`twitter/${this.twitterUsername}/lastTopKolsTweet`);
+
+        if (!lastTopKolsTweet) {
+            elizaLogger.log("No last top KOLs tweet found, sending now");
+            return true;
+        }
+
+        // Check if the last tweet was sent today
+        const lastTweetDate = new Date(lastTopKolsTweet.timestamp);
+        elizaLogger.log(
+            `Last top KOLs tweet was sent on ${lastTweetDate.toDateString()}, current date is ${now.toDateString()}`
+        );
+        return lastTweetDate.toDateString() !== now.toDateString();
     }
 }

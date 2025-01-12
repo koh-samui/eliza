@@ -6,7 +6,7 @@
 
     ```bash
     cd packages
-    git clone git@github.com:topwallets/plugin-topwallets.git
+    git clone git@github.com:elyrai/plugin-topwallets.git
     ```
 
 2. Configure environment variables:
