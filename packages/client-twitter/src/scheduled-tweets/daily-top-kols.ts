@@ -25,9 +25,16 @@ export const dailyTopKolsTweet: ScheduledTweet = {
                 topWalletsAPI.getTopKolsPicture(),
             ]);
 
-            // Sort by 1d score and get top 3
+            // Sort by 1d score and get top 3, using PnL as tiebreaker
             const top3Kols = response.data
-                .sort((a, b) => b["1d"].score - a["1d"].score)
+                .sort((a, b) => {
+                    const scoreA = a["1d"].score;
+                    const scoreB = b["1d"].score;
+                    if (scoreA === scoreB) {
+                        return b["1d"].combinedPnlRaw - a["1d"].combinedPnlRaw;
+                    }
+                    return scoreB - scoreA;
+                })
                 .slice(0, 3);
 
             // Generate tweet text
