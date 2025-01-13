@@ -33,7 +33,7 @@ export const monthlyTopKolsTweet: ScheduledTweet = {
                     const scoreB = b["30d"].score;
                     if (scoreA === scoreB) {
                         return (
-                            b["30d"].combinedPnlRaw - a["30d"].combinedPnlRaw
+                            b["30d"].realizedPnlRaw - a["30d"].realizedPnlRaw
                         );
                     }
                     return scoreB - scoreA;
@@ -54,7 +54,7 @@ export const monthlyTopKolsTweet: ScheduledTweet = {
                     ? `@${data.twitter_url.split("/").pop()}`
                     : data.formattedAddress.slice(0, 8);
                 const winRate = `${data.winrate}%`;
-                const pnl = formatPnl(data.combinedPnlRaw);
+                const pnl = formatPnl(data.realizedPnlRaw);
 
                 tweetLines.push(
                     `${emojis[index]} ${handle} | ${winRate} WR - ${pnl} PnL`

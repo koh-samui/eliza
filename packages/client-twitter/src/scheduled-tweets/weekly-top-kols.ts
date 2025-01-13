@@ -32,7 +32,7 @@ export const weeklyTopKolsTweet: ScheduledTweet = {
                     const scoreA = a["7d"].score;
                     const scoreB = b["7d"].score;
                     if (scoreA === scoreB) {
-                        return b["7d"].combinedPnlRaw - a["7d"].combinedPnlRaw;
+                        return b["7d"].realizedPnlRaw - a["7d"].realizedPnlRaw;
                     }
                     return scoreB - scoreA;
                 })
@@ -52,7 +52,7 @@ export const weeklyTopKolsTweet: ScheduledTweet = {
                     ? `@${data.twitter_url.split("/").pop()}`
                     : data.formattedAddress.slice(0, 8);
                 const winRate = `${data.winrate}%`;
-                const pnl = formatPnl(data.combinedPnlRaw);
+                const pnl = formatPnl(data.realizedPnlRaw);
 
                 tweetLines.push(
                     `${emojis[index]} ${handle} | ${winRate} WR - ${pnl} PnL`
