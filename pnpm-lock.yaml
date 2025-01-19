@@ -102,9 +102,6 @@ importers:
 
   agent:
     dependencies:
-      '@ai16z/plugin-topwallets':
-        specifier: workspace:*
-        version: link:../packages/plugin-topwallets
       '@elizaos/adapter-postgres':
         specifier: workspace:*
         version: link:../packages/adapter-postgres
@@ -225,6 +222,9 @@ importers:
       '@elizaos/plugin-ton':
         specifier: workspace:*
         version: link:../packages/plugin-ton
+      '@elizaos/plugin-topwallets':
+        specifier: workspace:*
+        version: link:../packages/plugin-topwallets
       '@elizaos/plugin-twitter':
         specifier: workspace:*
         version: link:../packages/plugin-twitter
@@ -769,6 +769,9 @@ importers:
       '@elizaos/core':
         specifier: workspace:*
         version: link:../core
+      '@elizaos/plugin-topwallets':
+        specifier: workspace:*
+        version: link:../plugin-topwallets
       agent-twitter-client:
         specifier: 0.0.18
         version: 0.0.18(bufferutil@4.0.9)(utf-8-validate@5.0.10)
@@ -33121,7 +33124,7 @@ snapshots:
 
   extract-zip@2.0.1:
     dependencies:
-      debug: 4.3.4
+      debug: 4.4.0(supports-color@8.1.1)
       get-stream: 5.2.0
       yauzl: 2.10.0
     optionalDependencies:

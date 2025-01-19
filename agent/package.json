@@ -61,7 +61,7 @@
         "@elizaos/plugin-fuel": "workspace:*",
         "@elizaos/plugin-avalanche": "workspace:*",
         "@elizaos/plugin-web-search": "workspace:*",
-        "@ai16z/plugin-topwallets": "workspace:*",
+        "@elizaos/plugin-topwallets": "workspace:*",
         "readline": "1.3.0",
         "ws": "8.18.0",
         "yargs": "17.7.2"

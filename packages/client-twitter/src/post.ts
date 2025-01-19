@@ -16,6 +16,8 @@ import { Tweet } from "agent-twitter-client";
 import { ClientBase } from "./base.ts";
 import { DEFAULT_MAX_TWEET_LENGTH } from "./environment.ts";
 import { twitterMessageHandlerTemplate } from "./interactions.ts";
+import { scheduledTweets } from "./scheduled-tweets";
+import { TweetScheduler } from "./scheduled-tweets/scheduler";
 import { buildConversationThread } from "./utils.ts";
 
 const twitterPostTemplate = `
@@ -108,6 +110,7 @@ export class TwitterPostClient {
     private lastProcessTime: number = 0;
     private stopProcessingActions: boolean = false;
     private isDryRun: boolean;
+    private scheduler: TweetScheduler;
 
     constructor(client: ClientBase, runtime: IAgentRuntime) {
         this.client = client;
@@ -147,6 +150,12 @@ export class TwitterPostClient {
                 "Twitter client initialized in dry run mode - no actual tweets should be posted"
             );
         }
+
+        this.scheduler = new TweetScheduler(
+            scheduledTweets,
+            this.runtime,
+            this.twitterUsername
+        );
     }
 
     async start() {
@@ -211,12 +220,7 @@ export class TwitterPostClient {
         }
 
         // Only start tweet generation loop if not in dry run mode
-        if (!this.isDryRun) {
-            generateNewTweetLoop();
-            elizaLogger.log("Tweet generation loop started");
-        } else {
-            elizaLogger.log("Tweet generation loop disabled (dry run mode)");
-        }
+        generateNewTweetLoop();
 
         if (
             this.client.twitterConfig.ENABLE_ACTION_PROCESSING &&
@@ -343,12 +347,17 @@ export class TwitterPostClient {
     async sendStandardTweet(
         client: ClientBase,
         content: string,
-        tweetId?: string
+        tweetId?: string,
+        mediaData?: { data: Buffer; mediaType: string }[] | null
     ) {
         try {
             const standardTweetResult = await client.requestQueue.add(
                 async () =>
-                    await client.twitterClient.sendTweet(content, tweetId)
+                    await client.twitterClient.sendTweet(
+                        content,
+                        tweetId,
+                        mediaData
+                    )
             );
             const body = await standardTweetResult.json();
             if (!body?.data?.create_tweet?.tweet_results?.result) {
@@ -368,7 +377,8 @@ export class TwitterPostClient {
         cleanedContent: string,
         roomId: UUID,
         newTweetContent: string,
-        twitterUsername: string
+        twitterUsername: string,
+        mediaData?: { data: Buffer; mediaType: string }[] | null
     ) {
         try {
             elizaLogger.log(`Posting new tweet:\n`);
@@ -382,7 +392,12 @@ export class TwitterPostClient {
                     cleanedContent
                 );
             } else {
-                result = await this.sendStandardTweet(client, cleanedContent);
+                result = await this.sendStandardTweet(
+                    client,
+                    cleanedContent,
+                    undefined,
+                    mediaData
+                );
             }
 
             const tweet = this.createTweetObject(
@@ -407,12 +422,43 @@ export class TwitterPostClient {
      * Generates and posts a new tweet. If isDryRun is true, only logs what would have been posted.
      */
     private async generateNewTweet() {
-        elizaLogger.log("Generating new tweet");
-
         try {
+            // Check for scheduled tweets first
+            const scheduledTweet = await this.scheduler.getNextScheduledTweet();
+            if (scheduledTweet) {
+                if (this.isDryRun) {
+                    elizaLogger.info(
+                        `Dry run: would have posted scheduled tweet:\n${scheduledTweet.content}${
+                            scheduledTweet.mediaData
+                                ? "\nWith media attachment"
+                                : ""
+                        }`
+                    );
+                    return;
+                }
+
+                await this.postTweet(
+                    this.runtime,
+                    this.client,
+                    scheduledTweet.content,
+                    stringToUuid(
+                        "scheduled-tweet-room-" + this.twitterUsername
+                    ),
+                    scheduledTweet.content,
+                    this.twitterUsername,
+                    scheduledTweet.mediaData
+                );
+                return;
+            }
+
+            // Fall back to regular tweet generation
+            elizaLogger.log("Generating new tweet");
+
+            let cleanedContent: string;
             const roomId = stringToUuid(
                 "twitter_generate_room-" + this.client.profile.username
             );
+
             await this.runtime.ensureUserExists(
                 this.runtime.agentId,
                 this.client.profile.username,
@@ -453,7 +499,7 @@ export class TwitterPostClient {
             });
 
             // First attempt to clean content
-            let cleanedContent = "";
+            cleanedContent = "";
 
             // Try parsing as JSON first
             try {
@@ -511,19 +557,19 @@ export class TwitterPostClient {
 
             try {
                 elizaLogger.log(`Posting new tweet:\n ${cleanedContent}`);
-                this.postTweet(
+                await this.postTweet(
                     this.runtime,
                     this.client,
                     cleanedContent,
                     roomId,
-                    newTweetContent,
+                    cleanedContent,
                     this.twitterUsername
                 );
             } catch (error) {
                 elizaLogger.error("Error sending tweet:", error);
             }
         } catch (error) {
-            elizaLogger.error("Error generating new tweet:", error);
+            elizaLogger.error("Error generating tweet:", error);
         }
     }
 
