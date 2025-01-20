@@ -2,15 +2,6 @@ import { elizaLogger } from "@elizaos/core";
 import { TopWalletsAPI } from "@elizaos/plugin-topwallets";
 import { ScheduledTweet } from "./types";
 
-const formatPnl = (pnl: number) => {
-    if (Math.abs(pnl) >= 1000000) {
-        return `$${(pnl / 1000000).toFixed(1)}M`;
-    } else if (Math.abs(pnl) >= 1000) {
-        return `$${(pnl / 1000).toFixed(1)}K`;
-    }
-    return `$${pnl.toFixed(0)}`;
-};
-
 export const weeklyTopKolsTweet: ScheduledTweet = {
     id: "weekly-top-kols",
     frequency: "weekly",
@@ -52,7 +43,7 @@ export const weeklyTopKolsTweet: ScheduledTweet = {
                     ? `@${data.twitter_url.split("/").pop()}`
                     : data.formattedAddress.slice(0, 8);
                 const winRate = `${data.winrate}%`;
-                const pnl = formatPnl(data.realizedPnlRaw);
+                const pnl = data.realizedPnl;
 
                 tweetLines.push(
                     `${emojis[index]} ${handle} | ${winRate} WR - ${pnl} PnL`
