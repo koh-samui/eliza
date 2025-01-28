@@ -1,15 +1,22 @@
 {
+    "extends": "../../tsconfig.json",
     "compilerOptions": {
-        "target": "ES2020",
-        "module": "commonjs",
-        "moduleResolution": "node",
-        "esModuleInterop": true,
-        "skipLibCheck": true,
-        "forceConsistentCasingInFileNames": true
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
+        "target": "ES2022",
+        "outDir": "dist",
+        "rootDir": "src",
+        "esModuleInterop": true
     },
-    "files": [],
+    "ts-node": {
+        "esm": true
+    },
+    "include": [
+        "src/**/*"
+    ],
     "references": [
-        { "path": "packages/core" },
-        { "path": "packages/client-slack" }
+        {
+            "path": "../core"
+        }
     ]
-} 
+}
