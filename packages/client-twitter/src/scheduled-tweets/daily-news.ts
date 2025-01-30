@@ -46,7 +46,7 @@ export const dailyNewsTweet: ScheduledTweet = {
     id: "daily-news",
     frequency: "daily",
     timeCondition: {
-        hour: 8, // 8 am
+        hour: 21, // 21 pm
     },
     generateContent: async (runtime: IAgentRuntime) => {
         let scraper: Scraper | null = null;
