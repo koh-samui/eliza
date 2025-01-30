@@ -23,7 +23,7 @@ export const weeklyTopKolsTweet: ScheduledTweet = {
                     const scoreA = a["7d"].score;
                     const scoreB = b["7d"].score;
                     if (scoreA === scoreB) {
-                        return b["7d"].realizedPnlRaw - a["7d"].realizedPnlRaw;
+                        return b["7d"].combinedPnlRaw - a["7d"].combinedPnlRaw;
                     }
                     return scoreB - scoreA;
                 })
@@ -43,18 +43,16 @@ export const weeklyTopKolsTweet: ScheduledTweet = {
                     ? `@${data.twitter_url.split("/").pop()}`
                     : data.formattedAddress.slice(0, 8);
                 const winRate = `${data.winrate}%`;
-                const pnl = data.realizedPnl;
+                const pnl = data.combinedPnl;
 
                 tweetLines.push(
-                    `${emojis[index]} ${handle} | ${winRate} WR - ${pnl} PnL`
+                    `${emojis[index]} ${handle} [${data.score}] ${winRate} WR - ${pnl} PnL`
                 );
             });
 
             // Add empty line and link
             tweetLines.push("");
-            tweetLines.push(
-                "See full standings at https://www.topwallets.ai/top-kols"
-            );
+            tweetLines.push("See full standings at @TopwalletsAI");
 
             return {
                 content: tweetLines.join("\n"),
