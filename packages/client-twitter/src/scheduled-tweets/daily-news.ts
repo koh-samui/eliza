@@ -2,20 +2,21 @@ import {
     composeContext,
     elizaLogger,
     generateText,
+    IAgentRuntime,
     ModelClass,
     stringToUuid,
-    IAgentRuntime,
 } from "@elizaos/core";
-import { Scraper, SearchMode, Tweet, ScheduledTweet } from "agent-twitter-client";
+import { Scraper, SearchMode } from "agent-twitter-client";
+import { ScheduledTweet } from "./types";
 
 const SOLANA_ACCOUNTS = [
-    'S0LBigFinance',
-    'magFOMO',
-    'StepDevInsights',
-    'SolanaFloor',
-    'solana_daily',
-    'SolanaStatus',
-    'solananew'
+    "S0LBigFinance",
+    "magFOMO",
+    "StepDevInsights",
+    "SolanaFloor",
+    "solana_daily",
+    "SolanaStatus",
+    "solananew",
 ];
 
 const dailyNewsSummaryTemplate = `
@@ -45,7 +46,7 @@ export const dailyNewsTweet: ScheduledTweet = {
     id: "daily-news",
     frequency: "daily",
     timeCondition: {
-        hour: 21, // 9 PM
+        hour: 8, // 8 am
     },
     generateContent: async (runtime: IAgentRuntime) => {
         let scraper: Scraper | null = null;
@@ -55,12 +56,14 @@ export const dailyNewsTweet: ScheduledTweet = {
             elizaLogger.info("Initializing Twitter scraper...");
 
             // Get credentials from environment
-            const username = process.env.TWITTER_USERNAME;
-            const password = process.env.TWITTER_PASSWORD;
-            const email = process.env.TWITTER_EMAIL;
+            const username = process.env.SCRAPER_TWITTER_USERNAME;
+            const password = process.env.SCRAPER_TWITTER_PASSWORD;
+            const email = process.env.SCRAPER_TWITTER_EMAIL;
 
             if (!username || !password || !email) {
-                throw new Error("Missing Twitter credentials in environment");
+                throw new Error(
+                    "Missing Twitter scraper credentials in environment"
+                );
             }
 
             // Login to Twitter
@@ -78,12 +81,17 @@ export const dailyNewsTweet: ScheduledTweet = {
                         50,
                         SearchMode.Latest
                     );
-                    elizaLogger.info(`Found ${accountTweets?.tweets?.length || 0} tweets for ${account}`);
+                    elizaLogger.info(
+                        `Found ${accountTweets?.tweets?.length || 0} tweets for ${account}`
+                    );
                     if (accountTweets?.tweets?.length) {
                         searchResults.push(...accountTweets.tweets);
                     }
                 } catch (error) {
-                    elizaLogger.error(`Error fetching tweets for ${account}:`, error);
+                    elizaLogger.error(
+                        `Error fetching tweets for ${account}:`,
+                        error
+                    );
                 }
             }
 
@@ -98,13 +106,18 @@ export const dailyNewsTweet: ScheduledTweet = {
             });
 
             if (!recentTweets.length) {
-                elizaLogger.warn("No recent tweets found from specified Solana accounts");
+                elizaLogger.warn(
+                    "No recent tweets found from specified Solana accounts"
+                );
                 return null;
             }
 
             // Format tweets for the template
             const formattedTweets = recentTweets
-                .map((tweet) => `@${tweet.username || 'unknown'}: ${tweet.text || ''}`)
+                .map(
+                    (tweet) =>
+                        `@${tweet.username || "unknown"}: ${tweet.text || ""}`
+                )
                 .join("\n\n");
 
             // Create a room ID for this summary
@@ -127,36 +140,37 @@ export const dailyNewsTweet: ScheduledTweet = {
             );
 
             // Generate summary
-            let summary;
-            if (runtime.generateText) {
-                const templateWithTweets = dailyNewsSummaryTemplate.replace('{{tweets}}', formattedTweets);
+            const templateWithTweets = dailyNewsSummaryTemplate.replace(
+                "{{tweets}}",
+                formattedTweets
+            );
 
-                summary = await runtime.generateText({
-                    context: {
-                        template: templateWithTweets,
-                        state
-                    },
-                    modelClass: ModelClass.SMALL
-                });
-            } else {
-                elizaLogger.warn("No generateText available, using template directly");
-                summary = dailyNewsSummaryTemplate.replace('{{tweets}}', formattedTweets);
-            }
+            const context = composeContext({
+                state,
+                template: templateWithTweets,
+            });
+
+            const summary = await generateText({
+                runtime,
+                context,
+                modelClass: ModelClass.SMALL,
+            });
 
             // Clean and format the summary
-            const cleanedSummary = summary
+            let cleanedSummary = summary
                 .replace(/```json\s*|\s*```/g, "")
                 .replace(/^['"](.*)['"]$/g, "$1")
                 .replace(/\\n/g, "\n")
                 .trim();
 
             if (cleanedSummary.length > 280) {
-                elizaLogger.warn("Generated summary exceeds 280 character limit. Truncating...");
-                return { content: cleanedSummary.slice(0, 277) + "..." };
+                elizaLogger.warn(
+                    "Generated summary exceeds 280 character limit. Truncating..."
+                );
+                cleanedSummary = cleanedSummary.slice(0, 277) + "...";
             }
 
             return { content: cleanedSummary };
-
         } catch (error) {
             elizaLogger.error("Error generating daily news tweet:", error);
             if (error instanceof Error) {
@@ -171,7 +185,10 @@ export const dailyNewsTweet: ScheduledTweet = {
                     await scraper.logout();
                     elizaLogger.info("Successfully logged out from Twitter");
                 } catch (logoutError) {
-                    elizaLogger.warn("Error during Twitter logout:", logoutError);
+                    elizaLogger.warn(
+                        "Error during Twitter logout:",
+                        logoutError
+                    );
                 }
             }
         }
