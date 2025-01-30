@@ -55,9 +55,6 @@ export const monthlyTopKolsTweet: ScheduledTweet = {
             // Add empty line and link
             tweetLines.push("");
             tweetLines.push("See full standings at @TopwalletsAI");
-            tweetLines.push("");
-            tweetLines.push("");
-            tweetLines.push("https://www.topwallets.ai/top-kols");
 
             return {
                 content: tweetLines.join("\n"),
