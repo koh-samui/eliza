@@ -1,37 +1,10 @@
 {
-    "extends": "../../tsconfig.json",
+    "extends": "../core/tsconfig.json",
     "compilerOptions": {
-        "module": "NodeNext",
-        "moduleResolution": "NodeNext",
-        "outDir": "./dist",
-        "rootDir": "./src",
-        "target": "ES2022",
-        "esModuleInterop": true,
-        "allowJs": true,
-        "resolveJsonModule": true,
-        "baseUrl": ".",
-        "paths": {
-            "@elizaos/core": [
-                "../core/src"
-            ]
-        }
-    },
-    "ts-node": {
-        "esm": true,
-        "experimentalSpecifiers": true,
-        "preferTsExts": true,
-        "moduleTypes": {
-            "**/*": "esm"
-        },
-        "transpileOnly": true,
-        "swc": true
+        "outDir": "dist",
+        "rootDir": "src"
     },
     "include": [
-        "src/**/*"
-    ],
-    "references": [
-        {
-            "path": "../core"
-        }
+        "src/**/*.ts"
     ]
 }

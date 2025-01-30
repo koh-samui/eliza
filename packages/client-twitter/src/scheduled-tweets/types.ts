@@ -1,9 +1,9 @@
 import { IAgentRuntime } from "@elizaos/core";
 
-export interface ScheduledTweetContent {
+export type ScheduledTweetContent = {
     content: string;
-    posted?: boolean;
-}
+    mediaData?: { data: Buffer; mediaType: string }[] | null;
+};
 
 export type TimeCondition = {
     hour: number;
@@ -16,10 +16,8 @@ export type Frequency = "daily" | "weekly" | "monthly";
 
 export interface ScheduledTweet {
     id: string;
-    frequency: string;
-    timeCondition: {
-        hour: number;
-    };
+    frequency: Frequency;
+    timeCondition: TimeCondition;
     generateContent: (runtime: IAgentRuntime) => Promise<ScheduledTweetContent>;
     shouldRun?: () => Promise<boolean>; // Optional custom condition
 }

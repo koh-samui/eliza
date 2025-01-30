@@ -1,4 +1,4 @@
-[@elizaos/core v0.1.7](../index.md) / ITranscriptionService
+[@elizaos/core v0.1.7-alpha.1](../index.md) / ITranscriptionService
 
 # Interface: ITranscriptionService
 
@@ -24,7 +24,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:1090](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L1090)
+[packages/core/src/types.ts:1036](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L1036)
 
 ## Methods
 
@@ -48,7 +48,7 @@ Add abstract initialize method that must be implemented by derived classes
 
 #### Defined in
 
-[packages/core/src/types.ts:1095](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L1095)
+[packages/core/src/types.ts:1041](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L1041)
 
 ***
 
@@ -66,7 +66,7 @@ Add abstract initialize method that must be implemented by derived classes
 
 #### Defined in
 
-[packages/core/src/types.ts:1195](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L1195)
+[packages/core/src/types.ts:1140](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L1140)
 
 ***
 
@@ -84,7 +84,7 @@ Add abstract initialize method that must be implemented by derived classes
 
 #### Defined in
 
-[packages/core/src/types.ts:1196](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L1196)
+[packages/core/src/types.ts:1141](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L1141)
 
 ***
 
@@ -102,7 +102,7 @@ Add abstract initialize method that must be implemented by derived classes
 
 #### Defined in
 
-[packages/core/src/types.ts:1199](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L1199)
+[packages/core/src/types.ts:1144](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L1144)
 
 ***
 
@@ -120,4 +120,4 @@ Add abstract initialize method that must be implemented by derived classes
 
 #### Defined in
 
-[packages/core/src/types.ts:1200](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L1200)
+[packages/core/src/types.ts:1145](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L1145)

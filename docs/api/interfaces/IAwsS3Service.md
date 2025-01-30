@@ -1,4 +1,4 @@
-[@elizaos/core v0.1.7](../index.md) / IAwsS3Service
+[@elizaos/core v0.1.7-alpha.1](../index.md) / IAwsS3Service
 
 # Interface: IAwsS3Service
 
@@ -24,7 +24,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:1090](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L1090)
+[packages/core/src/types.ts:1036](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L1036)
 
 ## Methods
 
@@ -48,7 +48,7 @@ Add abstract initialize method that must be implemented by derived classes
 
 #### Defined in
 
-[packages/core/src/types.ts:1095](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L1095)
+[packages/core/src/types.ts:1041](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L1041)
 
 ***
 
@@ -84,7 +84,7 @@ Add abstract initialize method that must be implemented by derived classes
 
 #### Defined in
 
-[packages/core/src/types.ts:1250](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L1250)
+[packages/core/src/types.ts:1195](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L1195)
 
 ***
 
@@ -104,4 +104,4 @@ Add abstract initialize method that must be implemented by derived classes
 
 #### Defined in
 
-[packages/core/src/types.ts:1260](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L1260)
+[packages/core/src/types.ts:1205](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L1205)

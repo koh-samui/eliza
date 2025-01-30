@@ -1,4 +1,4 @@
-[@elizaos/core v0.1.7](../index.md) / IDatabaseAdapter
+[@elizaos/core v0.1.7-alpha.1](../index.md) / IDatabaseAdapter
 
 # Interface: IDatabaseAdapter
 
@@ -14,7 +14,7 @@ Database instance
 
 #### Defined in
 
-[packages/core/src/types.ts:856](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L856)
+[packages/core/src/types.ts:802](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L802)
 
 ## Methods
 
@@ -30,7 +30,7 @@ Optional initialization
 
 #### Defined in
 
-[packages/core/src/types.ts:859](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L859)
+[packages/core/src/types.ts:805](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L805)
 
 ***
 
@@ -46,7 +46,7 @@ Close database connection
 
 #### Defined in
 
-[packages/core/src/types.ts:862](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L862)
+[packages/core/src/types.ts:808](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L808)
 
 ***
 
@@ -66,7 +66,7 @@ Get account by ID
 
 #### Defined in
 
-[packages/core/src/types.ts:865](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L865)
+[packages/core/src/types.ts:811](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L811)
 
 ***
 
@@ -86,7 +86,7 @@ Create new account
 
 #### Defined in
 
-[packages/core/src/types.ts:868](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L868)
+[packages/core/src/types.ts:814](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L814)
 
 ***
 
@@ -120,7 +120,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:871](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L871)
+[packages/core/src/types.ts:817](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L817)
 
 ***
 
@@ -138,7 +138,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:881](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L881)
+[packages/core/src/types.ts:827](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L827)
 
 ***
 
@@ -162,7 +162,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:883](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L883)
+[packages/core/src/types.ts:829](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L829)
 
 ***
 
@@ -192,7 +192,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:889](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L889)
+[packages/core/src/types.ts:835](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L835)
 
 ***
 
@@ -218,7 +218,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:898](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L898)
+[packages/core/src/types.ts:844](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L844)
 
 ***
 
@@ -238,7 +238,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:905](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L905)
+[packages/core/src/types.ts:851](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L851)
 
 ***
 
@@ -270,7 +270,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:907](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L907)
+[packages/core/src/types.ts:853](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L853)
 
 ***
 
@@ -292,7 +292,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:917](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L917)
+[packages/core/src/types.ts:863](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L863)
 
 ***
 
@@ -324,7 +324,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:922](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L922)
+[packages/core/src/types.ts:868](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L868)
 
 ***
 
@@ -346,7 +346,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:934](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L934)
+[packages/core/src/types.ts:880](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L880)
 
 ***
 
@@ -366,7 +366,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:940](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L940)
+[packages/core/src/types.ts:886](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L886)
 
 ***
 
@@ -386,7 +386,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:942](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L942)
+[packages/core/src/types.ts:888](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L888)
 
 ***
 
@@ -408,7 +408,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:944](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L944)
+[packages/core/src/types.ts:890](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L890)
 
 ***
 
@@ -436,7 +436,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:950](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L950)
+[packages/core/src/types.ts:896](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L896)
 
 ***
 
@@ -454,7 +454,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:958](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L958)
+[packages/core/src/types.ts:904](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L904)
 
 ***
 
@@ -472,7 +472,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:960](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L960)
+[packages/core/src/types.ts:906](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L906)
 
 ***
 
@@ -490,7 +490,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:962](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L962)
+[packages/core/src/types.ts:908](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L908)
 
 ***
 
@@ -508,7 +508,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:964](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L964)
+[packages/core/src/types.ts:910](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L910)
 
 ***
 
@@ -526,7 +526,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:966](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L966)
+[packages/core/src/types.ts:912](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L912)
 
 ***
 
@@ -544,7 +544,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:968](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L968)
+[packages/core/src/types.ts:914](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L914)
 
 ***
 
@@ -562,7 +562,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:970](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L970)
+[packages/core/src/types.ts:916](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L916)
 
 ***
 
@@ -580,7 +580,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:972](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L972)
+[packages/core/src/types.ts:918](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L918)
 
 ***
 
@@ -598,7 +598,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:974](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L974)
+[packages/core/src/types.ts:920](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L920)
 
 ***
 
@@ -618,7 +618,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:976](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L976)
+[packages/core/src/types.ts:922](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L922)
 
 ***
 
@@ -638,7 +638,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:978](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L978)
+[packages/core/src/types.ts:924](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L924)
 
 ***
 
@@ -656,7 +656,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:980](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L980)
+[packages/core/src/types.ts:926](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L926)
 
 ***
 
@@ -674,7 +674,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:982](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L982)
+[packages/core/src/types.ts:928](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L928)
 
 ***
 
@@ -694,7 +694,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:984](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L984)
+[packages/core/src/types.ts:930](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L930)
 
 ***
 
@@ -716,7 +716,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:989](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L989)
+[packages/core/src/types.ts:935](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L935)
 
 ***
 
@@ -738,7 +738,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:995](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L995)
+[packages/core/src/types.ts:941](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L941)
 
 ***
 
@@ -760,7 +760,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:997](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L997)
+[packages/core/src/types.ts:943](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L943)
 
 ***
 
@@ -780,4 +780,4 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:1002](https://github.com/koh-samui/eliza/blob/main/packages/core/src/types.ts#L1002)
+[packages/core/src/types.ts:948](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L948)
