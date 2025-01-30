@@ -4,19 +4,29 @@ import {
     generateText,
     ModelClass,
     stringToUuid,
+    IAgentRuntime,
 } from "@elizaos/core";
-import { Scraper, SearchMode } from "agent-twitter-client";
-import { ScheduledTweet } from "./types";
+import { Scraper, SearchMode, Tweet, ScheduledTweet } from "agent-twitter-client";
+
+const SOLANA_ACCOUNTS = [
+    'S0LBigFinance',
+    'magFOMO',
+    'StepDevInsights',
+    'SolanaFloor',
+    'solana_daily',
+    'SolanaStatus',
+    'solananew'
+];
 
 const dailyNewsSummaryTemplate = `
-# Task: Summarize the most important crypto news of the day
+# Task: Summarize the most important Solana news of the day
 
-Context: You are analyzing a collection of tweets about cryptocurrency news. Create a concise summary of the most significant developments.
+Context: You are analyzing tweets from key Solana ecosystem accounts. Create a concise summary of the most significant developments.
 
 Guidelines:
-- Focus on major market moves, significant protocol updates, or important industry news
+- Focus on major Solana ecosystem updates, market moves, and protocol developments
 - Avoid duplicate information and minor updates
-- Prioritize verified information from reliable sources
+- Prioritize verified information from these trusted Solana sources
 - Maintain a neutral, factual tone
 - Format the summary in 2-3 clear bullet points
 - Keep total length under 240 characters
@@ -25,7 +35,7 @@ Tweets to analyze:
 {{tweets}}
 
 Write a concise summary in the following format:
-📰 Daily Crypto News Summary:
+📰 Daily Solana News:
 • [First key development]
 • [Second key development]
 • [Third key development if space permits]
@@ -37,10 +47,12 @@ export const dailyNewsTweet: ScheduledTweet = {
     timeCondition: {
         hour: 21, // 9 PM
     },
-    generateContent: async (runtime) => {
+    generateContent: async (runtime: IAgentRuntime) => {
+        let scraper: Scraper | null = null;
         try {
             // Initialize scraper
-            const scraper = new Scraper();
+            scraper = new Scraper();
+            elizaLogger.info("Initializing Twitter scraper...");
 
             // Get credentials from environment
             const username = process.env.TWITTER_USERNAME;
@@ -52,24 +64,47 @@ export const dailyNewsTweet: ScheduledTweet = {
             }
 
             // Login to Twitter
+            elizaLogger.info("Attempting Twitter login...");
             await scraper.login(username, password, email);
+            elizaLogger.info("Successfully logged into Twitter");
 
-            // Search for tweets from the last 24 hours
-            const searchQuery = "crypto OR bitcoin OR ethereum -is:retweet";
-            const searchResults = await scraper.fetchSearchTweets(
-                searchQuery,
-                100, // max results
-                SearchMode.Latest
-            );
+            // Fetch tweets from accounts
+            const searchResults = [];
+            for (const account of SOLANA_ACCOUNTS) {
+                elizaLogger.info(`Fetching tweets for account: ${account}`);
+                try {
+                    const accountTweets = await scraper.fetchSearchTweets(
+                        `from:${account} -is:retweet`,
+                        50,
+                        SearchMode.Latest
+                    );
+                    elizaLogger.info(`Found ${accountTweets?.tweets?.length || 0} tweets for ${account}`);
+                    if (accountTweets?.tweets?.length) {
+                        searchResults.push(...accountTweets.tweets);
+                    }
+                } catch (error) {
+                    elizaLogger.error(`Error fetching tweets for ${account}:`, error);
+                }
+            }
 
-            if (!searchResults?.tweets?.length) {
-                elizaLogger.warn("No tweets found for daily news summary");
+            // Filter tweets from the last 24 hours
+            const oneDayAgo = new Date();
+            oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+            const oneDayAgoTimestamp = Math.floor(oneDayAgo.getTime() / 1000);
+
+            const recentTweets = searchResults.filter((tweet) => {
+                if (!tweet?.timestamp) return false;
+                return tweet.timestamp > oneDayAgoTimestamp;
+            });
+
+            if (!recentTweets.length) {
+                elizaLogger.warn("No recent tweets found from specified Solana accounts");
                 return null;
             }
 
             // Format tweets for the template
-            const formattedTweets = searchResults.tweets
-                .map((tweet) => `@${tweet.username}: ${tweet.text}`)
+            const formattedTweets = recentTweets
+                .map((tweet) => `@${tweet.username || 'unknown'}: ${tweet.text || ''}`)
                 .join("\n\n");
 
             // Create a room ID for this summary
@@ -91,34 +126,54 @@ export const dailyNewsTweet: ScheduledTweet = {
                 }
             );
 
-            // Generate summary using LLM
-            const context = composeContext({
-                state,
-                template: dailyNewsSummaryTemplate,
-            });
+            // Generate summary
+            let summary;
+            if (runtime.generateText) {
+                const templateWithTweets = dailyNewsSummaryTemplate.replace('{{tweets}}', formattedTweets);
 
-            const summary = await generateText({
-                runtime: runtime,
-                context,
-                modelClass: ModelClass.SMALL,
-            });
+                summary = await runtime.generateText({
+                    context: {
+                        template: templateWithTweets,
+                        state
+                    },
+                    modelClass: ModelClass.SMALL
+                });
+            } else {
+                elizaLogger.warn("No generateText available, using template directly");
+                summary = dailyNewsSummaryTemplate.replace('{{tweets}}', formattedTweets);
+            }
 
             // Clean and format the summary
             const cleanedSummary = summary
-                .replace(/```json\s*|\s*```/g, "") // Remove JSON markers
-                .replace(/^['"](.*)['"]$/g, "$1") // Remove outer quotes
-                .replace(/\\n/g, "\n") // Fix newlines
+                .replace(/```json\s*|\s*```/g, "")
+                .replace(/^['"](.*)['"]$/g, "$1")
+                .replace(/\\n/g, "\n")
                 .trim();
 
-            // Logout after we're done
-            await scraper.logout();
+            if (cleanedSummary.length > 280) {
+                elizaLogger.warn("Generated summary exceeds 280 character limit. Truncating...");
+                return { content: cleanedSummary.slice(0, 277) + "..." };
+            }
 
-            return {
-                content: cleanedSummary,
-            };
+            return { content: cleanedSummary };
+
         } catch (error) {
             elizaLogger.error("Error generating daily news tweet:", error);
+            if (error instanceof Error) {
+                elizaLogger.error("Error details:", error.message);
+                elizaLogger.error("Stack trace:", error.stack);
+            }
             throw error;
+        } finally {
+            // Always try to logout
+            if (scraper) {
+                try {
+                    await scraper.logout();
+                    elizaLogger.info("Successfully logged out from Twitter");
+                } catch (logoutError) {
+                    elizaLogger.warn("Error during Twitter logout:", logoutError);
+                }
+            }
         }
     },
 };
