@@ -5,6 +5,8 @@ import {
     IAgentRuntime,
     ModelClass,
     stringToUuid,
+    Memory,
+    MemoryType,
 } from "@elizaos/core";
 import { Scraper, SearchMode } from "agent-twitter-client";
 import { ScheduledTweet } from "./types";
@@ -41,6 +43,62 @@ Write a concise summary in the following format:
 • [Second key development]
 • [Third key development if space permits]
 `;
+
+async function storeNewsInMemory(runtime: IAgentRuntime, tweets: any[], summary: string) {
+    try {
+        const memories: Memory[] = tweets.map(tweet => ({
+            type: MemoryType.OBSERVATION,
+            content: {
+                source: 'twitter',
+                username: tweet.username,
+                text: tweet.text,
+                timestamp: tweet.timestamp,
+                engagement: {
+                    likes: tweet.likes || 0,
+                    retweets: tweet.retweets || 0
+                }
+            },
+            metadata: {
+                category: 'solana_news',
+                importance: tweet.engagementScore || 0
+            },
+            context: {
+                platform: 'twitter',
+                topic: 'solana',
+                summary: summary
+            }
+        }));
+
+        // Store each tweet as a separate memory
+        for (const memory of memories) {
+            await runtime.memory.store(memory);
+        }
+
+        // Store the summary as a higher-level memory
+        await runtime.memory.store({
+            type: MemoryType.ANALYSIS,
+            content: {
+                summary: summary,
+                timestamp: Date.now(),
+                source: 'daily_news_summary'
+            },
+            metadata: {
+                category: 'solana_daily_summary',
+                importance: 0.8 // High importance for daily summaries
+            },
+            context: {
+                platform: 'twitter',
+                topic: 'solana',
+                date: new Date().toISOString().split('T')[0]
+            }
+        });
+
+        elizaLogger.info(`Stored ${memories.length} news items and summary in memory`);
+    } catch (error) {
+        elizaLogger.error('Error storing news in memory:', error);
+        throw error;
+    }
+}
 
 export const dailyNewsTweet: ScheduledTweet = {
     id: "daily-news",
@@ -85,7 +143,11 @@ export const dailyNewsTweet: ScheduledTweet = {
                         `Found ${accountTweets?.tweets?.length || 0} tweets for ${account}`
                     );
                     if (accountTweets?.tweets?.length) {
-                        searchResults.push(...accountTweets.tweets);
+                        const tweetsWithEngagement = accountTweets.tweets.map(tweet => ({
+                            ...tweet,
+                            engagementScore: (tweet.likes || 0) * 1 + (tweet.retweets || 0) * 2
+                        }));
+                        searchResults.push(...tweetsWithEngagement);
                     }
                 } catch (error) {
                     elizaLogger.error(
@@ -155,6 +217,9 @@ export const dailyNewsTweet: ScheduledTweet = {
                 context,
                 modelClass: ModelClass.SMALL,
             });
+
+            // Store the tweets and summary in memory
+            await storeNewsInMemory(runtime, recentTweets, summary);
 
             // Clean and format the summary
             let cleanedSummary = summary
