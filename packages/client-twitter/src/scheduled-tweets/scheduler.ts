@@ -80,7 +80,7 @@ export class TweetScheduler {
     async getNextScheduledTweet(): Promise<ScheduledTweetContent | null> {
         for (const tweet of this.tweets) {
             if (await this.shouldRunTweet(tweet)) {
-                const content = await tweet.generateContent();
+                const content = await tweet.generateContent(this.runtime);
                 await this.setLastRunTime(tweet.id);
                 elizaLogger.log(
                     `Scheduled tweet ${tweet.id} is ready to run at ${new Date().toLocaleString()}`
