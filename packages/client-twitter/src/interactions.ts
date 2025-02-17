@@ -14,7 +14,7 @@ import {
     State,
     stringToUuid,
 } from "@elizaos/core";
-import { SearchMode, Tweet } from "agent-twitter-client";
+import { Scraper, SearchMode, Tweet } from "agent-twitter-client";
 import { ClientBase } from "./base";
 import { buildConversationThread, sendTweet, wait } from "./utils.ts";
 
@@ -103,19 +103,68 @@ export class TwitterInteractionClient {
         handleTwitterInteractionsLoop();
     }
 
+    private async fetchTweetsWithScraper(query: string, limit: number = 20) {
+        let scraper: Scraper | null = null;
+        try {
+            // Initialize scraper
+            scraper = new Scraper();
+            elizaLogger.info("Initializing Twitter scraper...");
+
+            // Get credentials from environment
+            const username = process.env.SCRAPER_TWITTER_USERNAME;
+            const password = process.env.SCRAPER_TWITTER_PASSWORD;
+            const email = process.env.SCRAPER_TWITTER_EMAIL;
+
+            if (!username || !password || !email) {
+                throw new Error(
+                    "Missing Twitter scraper credentials in environment"
+                );
+            }
+
+            // Login to Twitter
+            elizaLogger.info("Attempting Twitter login...");
+            await scraper.login(username, password, email);
+            elizaLogger.info("Successfully logged into Twitter");
+
+            // Fetch tweets
+            const searchResults = await scraper.fetchSearchTweets(
+                query,
+                limit,
+                SearchMode.Latest
+            );
+            return searchResults.tweets || [];
+        } catch (error) {
+            elizaLogger.error(
+                `Error fetching tweets for query ${query}:`,
+                error
+            );
+            return [];
+        } finally {
+            // Always try to logout
+            if (scraper) {
+                try {
+                    await scraper.logout();
+                    elizaLogger.info("Successfully logged out from Twitter");
+                } catch (logoutError) {
+                    elizaLogger.warn(
+                        "Error during Twitter logout:",
+                        logoutError
+                    );
+                }
+            }
+        }
+    }
+
     async handleTwitterInteractions() {
         elizaLogger.log("Checking Twitter interactions");
 
         const twitterUsername = this.client.profile.username;
         try {
-            // Check for mentions
-            const mentionCandidates = (
-                await this.client.fetchSearchTweets(
-                    `@${twitterUsername}`,
-                    20,
-                    SearchMode.Latest
-                )
-            ).tweets;
+            // Check for mentions using scraper
+            const mentionCandidates = await this.fetchTweetsWithScraper(
+                `@${twitterUsername}`,
+                20
+            );
 
             elizaLogger.log(
                 "Completed checking mentioned tweets:",
@@ -133,16 +182,14 @@ export class TwitterInteractionClient {
                     // Create a map to store tweets by user
                     const tweetsByUser = new Map<string, Tweet[]>();
 
-                    // Fetch tweets from all target users
+                    // Fetch tweets from all target users using scraper
                     for (const username of TARGET_USERS) {
                         try {
-                            const userTweets = (
-                                await this.client.twitterClient.fetchSearchTweets(
+                            const userTweets =
+                                await this.fetchTweetsWithScraper(
                                     `from:${username}`,
-                                    3,
-                                    SearchMode.Latest
-                                )
-                            ).tweets;
+                                    3
+                                );
 
                             // Filter for unprocessed, non-reply, recent tweets
                             const validTweets = userTweets.filter((tweet) => {
