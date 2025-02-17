@@ -48,7 +48,7 @@ export const monthlyTopKolsTweet: ScheduledTweet = {
                 const pnl = data.combinedPnl;
 
                 tweetLines.push(
-                    `${emojis[index]} ${handle} [${data.score}] ${winRate} WR - ${pnl} PnL`
+                    `${emojis[index]} [${data.score}] ${handle} - ${winRate} WR - ${pnl} PnL`
                 );
             });
 

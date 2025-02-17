@@ -6,7 +6,7 @@ export const dailyTopKolsTweet: ScheduledTweet = {
     id: "daily-top-kols",
     frequency: "daily",
     timeCondition: {
-        hour: 18, // after 10 AM
+        hour: 18, // after 6 PM
     },
     generateContent: async () => {
         try {
@@ -45,7 +45,7 @@ export const dailyTopKolsTweet: ScheduledTweet = {
                 const pnl = data.combinedPnl;
 
                 tweetLines.push(
-                    `${emojis[index]} ${handle} [${data.score}] ${winRate} WR - ${pnl} PnL`
+                    `${emojis[index]} [${data.score}] ${handle} - ${winRate} WR - ${pnl} PnL`
                 );
             });
 
