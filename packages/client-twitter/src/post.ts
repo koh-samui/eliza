@@ -49,6 +49,18 @@ interface TwitterActionConfig {
     threshold: number; // confidence threshold 0-10
 }
 
+// Add new interface for operating hours
+interface OperatingHours {
+    openHour: number; // 0-23
+    closeHour: number; // 0-23
+}
+
+// Add default operating hours (e.g. 9 AM to 10 PM)
+const DEFAULT_OPERATING_HOURS: OperatingHours = {
+    openHour: 7,
+    closeHour: 23,
+};
+
 const TWITTER_ACTIONS: TwitterActionConfig[] = [
     {
         tag: "[LIKE]",
@@ -161,6 +173,7 @@ export class TwitterPostClient {
     private stopProcessingActions: boolean = false;
     private isDryRun: boolean;
     private scheduler: TweetScheduler;
+    private operatingHours: OperatingHours;
 
     constructor(client: ClientBase, runtime: IAgentRuntime) {
         this.client = client;
@@ -205,6 +218,28 @@ export class TwitterPostClient {
             scheduledTweets,
             this.runtime,
             this.twitterUsername
+        );
+
+        this.operatingHours = {
+            openHour:
+                this.client.twitterConfig.TWITTER_OPEN_HOUR ??
+                DEFAULT_OPERATING_HOURS.openHour,
+            closeHour:
+                this.client.twitterConfig.TWITTER_CLOSE_HOUR ??
+                DEFAULT_OPERATING_HOURS.closeHour,
+        };
+
+        // Add operating hours to logging
+        elizaLogger.log(
+            `- Operating Hours: ${this.operatingHours.openHour}:00-${this.operatingHours.closeHour}:00`
+        );
+    }
+
+    private isWithinOperatingHours(): boolean {
+        const currentHour = new Date().getHours();
+        return (
+            currentHour >= this.operatingHours.openHour &&
+            currentHour < this.operatingHours.closeHour
         );
     }
 
@@ -472,6 +507,13 @@ export class TwitterPostClient {
      * Generates and posts a new tweet. If isDryRun is true, only logs what would have been posted.
      */
     private async generateNewTweet() {
+        if (!this.isWithinOperatingHours()) {
+            elizaLogger.log(
+                "Outside operating hours, skipping tweet generation"
+            );
+            return;
+        }
+
         try {
             // Check for scheduled tweets first
             const scheduledTweet = await this.scheduler.getNextScheduledTweet();
@@ -699,6 +741,11 @@ export class TwitterPostClient {
      * only simulates and logs actions without making API calls.
      */
     private async processTweetActions() {
+        if (!this.isWithinOperatingHours()) {
+            elizaLogger.log("Outside operating hours, skipping tweet actions");
+            return null;
+        }
+
         if (this.isProcessing) {
             elizaLogger.log("Already processing tweet actions, skipping");
             return null;
