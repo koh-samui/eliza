@@ -277,6 +277,15 @@ export class TwitterInteractionClient {
                         thread,
                     });
 
+                    // Add random wait between 30-60 seconds
+                    const waitTime = Math.floor(
+                        Math.random() * (60000 - 30000) + 30000
+                    );
+                    elizaLogger.log(
+                        `Waiting ${waitTime / 1000} seconds before processing next tweet`
+                    );
+                    await wait(waitTime);
+
                     // Update the last checked tweet ID after processing each tweet
                     this.client.lastCheckedTweetId = BigInt(tweet.id);
                 }
