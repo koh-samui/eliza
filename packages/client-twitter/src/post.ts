@@ -83,7 +83,7 @@ const TWITTER_ACTIONS: TwitterActionConfig[] = [
         description: "Can add substantial domain expertise",
         active: true,
         maxExecutionsPerRun: 1, // max 1 quote per run
-        delayBetweenExecutions: 72, // 72 minutes between quotes
+        delayBetweenExecutions: 124, // 124 minutes between quotes
         threshold: 9.5,
     },
     {
@@ -91,14 +91,15 @@ const TWITTER_ACTIONS: TwitterActionConfig[] = [
         description: "Can contribute meaningful, expert-level insight",
         active: true,
         maxExecutionsPerRun: 2, // max 2 replies per run
-        delayBetweenExecutions: 0,
+        delayBetweenExecutions: 32,
         threshold: 9.5,
     },
 ];
 
 const TIMELINE_FETCH_LIMIT = 10; // Number of tweets to fetch for action processing
-const ACTION_PROCESS_DELAY_MIN = 20; // Minimum delay between processing each action in seconds
-const ACTION_PROCESS_DELAY_MAX = 60; // Maximum delay between processing each action in seconds
+const ACTION_PROCESS_DELAY_MIN = 30; // Minimum delay between processing each action in seconds
+const ACTION_PROCESS_DELAY_MAX = 120; // Maximum delay between processing each action in seconds
+const ENABLE_DEFAULT_TWEET_GENERATION = false;
 
 export const twitterActionTemplate =
     `
@@ -540,6 +541,11 @@ export class TwitterPostClient {
                     this.twitterUsername,
                     scheduledTweet.mediaData
                 );
+                return;
+            }
+
+            if (!ENABLE_DEFAULT_TWEET_GENERATION) {
+                elizaLogger.log("Default tweet generation is disabled");
                 return;
             }
 
